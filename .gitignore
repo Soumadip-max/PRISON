@@ -1,0 +1,28 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caching & virtualenvs
+.pytest_cache/
+.venv/
+env/
+venv/
+ENV/
+
+# Node.js & Next.js
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Logs & temp files
+*.log
+/tmp/
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # 1. Database - PostgreSQL 16
+  db:
+    image: postgres:16-alpine
+    container_name: prison-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: prison
+      POSTGRES_USER: prison
+      POSTGRES_PASSWORD: prison_secure_pass_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prison -d prison"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Cache - Redis
+  redis:
+    image: redis:7-alpine
+    container_name: prison-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 3. Telemetry & eBPF Service (TRACECOMMON Track) - Port 8001
+  telemetry:
+    build:
+      context: .
+      dockerfile: services/telemetry/Dockerfile
+    container_name: prison-telemetry
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - POSTGRES_URL=postgresql://prison:prison_secure_pass_2026@db:5432/prison
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # 4. Orchestrator & Isolation Engine (MANTITUP Track) - Port 8000
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    container_name: prison-orchestrator
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - GITHUB_WEBHOOK_SECRET=prison_webhook_secret_key_2026
+      - PRISON_DEV_MODE=true
+      - TELEMETRY_URL=http://telemetry:8001
+      - POSTGRES_URL=postgresql://prison:prison_secure_pass_2026@db:5432/prison
+      - REDIS_URL=redis://redis:6379/0
+    # Mount /dev/kvm for Firecracker microVM execution when supported by host; fallback to DIND/process isolation
+    devices:
+      - "/dev/kvm:/dev/kvm"
+    privileged: true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      telemetry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # 5. Frontend Dashboard (apps/web) - Port 3000
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: prison-web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_TELEMETRY_URL=http://localhost:8001
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+      telemetry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
