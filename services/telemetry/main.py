@@ -6,6 +6,13 @@ Exposed on port 8001.
 from fastapi import FastAPI, status
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
+import asyncio
+from fastapi import BackgroundTasks
+
+from services.telemetry.schemas.events import RawEbpfEvent
+from services.telemetry.pipeline.normalizer import EventNormalizer
+from services.telemetry.pipeline.dag_builder import DAGBuilder
+from services.agent.triage.engine import AnakinTriageEngine
 
 app = FastAPI(
     title="PRISON Telemetry & eBPF Service",
@@ -42,10 +49,43 @@ def read_root():
 def health_check():
     return {"status": "healthy"}
 
+engine = AnakinTriageEngine()
+
+async def process_telemetry_background(payload: TelemetryEventPayload):
+    builder = DAGBuilder(execution_id=payload.sandbox_id)
+    for ev_dict in payload.events:
+        event_type = ev_dict.get("event_type", "OTHER").lower()
+        if event_type == "execve":
+            syscall = "sys_enter_execve"
+        elif event_type == "connect":
+            syscall = "sys_enter_connect"
+        elif event_type == "openat":
+            syscall = "sys_enter_openat"
+        else:
+            syscall = "sys_other"
+
+        raw = RawEbpfEvent(
+            execution_id=payload.sandbox_id,
+            pid=ev_dict.get("pid", 0),
+            ppid=ev_dict.get("ppid", 0),
+            comm=ev_dict.get("comm", "unknown"),
+            syscall=syscall,
+            args=ev_dict.get("details", {}),
+            honeypot_key=ev_dict.get("details", {}).get("honeypot_key", None)
+        )
+        norm = EventNormalizer.normalize(raw)
+        builder.add_event(norm)
+
+    dag = builder.build()
+    report = await engine.evaluate_dag(dag)
+    # The actual patch generation might happen here or in another worker
+    return report
+
 
 @app.post("/api/v1/telemetry/events", status_code=status.HTTP_201_CREATED)
-def ingest_telemetry(payload: TelemetryEventPayload):
+def ingest_telemetry(payload: TelemetryEventPayload, background_tasks: BackgroundTasks):
     telemetry_store.append(payload.model_dump())
+    background_tasks.add_task(process_telemetry_background, payload)
     return {
         "status": "INGESTED",
         "sandbox_id": payload.sandbox_id,

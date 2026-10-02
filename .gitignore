@@ -29,7 +29,6 @@ Thumbs.db
 
 # Environment variables
 .env
-
 # Firecracker and eBPF artifacts
 *.ext4
 vmlinux
