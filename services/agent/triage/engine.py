@@ -104,8 +104,8 @@ class AnakinTriageEngine:
         """
         # Fallback to rule-based parser if LLM request fails or library uninstalled
         try:
-            import httpx
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            import http
+            async with http.AsyncClient(timeout=15.0) as client:
                 prompt_content = USER_TRIAGE_PROMPT_TEMPLATE.format(
                     execution_id=dag.execution_id,
                     total_nodes=len(dag.nodes),
