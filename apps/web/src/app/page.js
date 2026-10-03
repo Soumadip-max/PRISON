@@ -1,7 +1,6 @@
 'use client';
 import Link from 'next/link';
 import ToastContainer from '@/components/Toast';
-import AsciiArtCanvas from '@/components/AsciiArtCanvas';
 import TechText from '@/components/TechText';
 import ShapeGrid from '@/components/ShapeGrid';
 
@@ -139,7 +138,7 @@ export default function LandingPage() {
       <div className="bg-retroBg text-slate-200 font-pixel selection:bg-pixelCyan selection:text-black overflow-x-hidden antialiased min-h-screen relative z-0">
         <ToastContainer />
         <ShapeGrid 
-          speed={0.15} 
+          speed={0.5} 
           squareSize={40}
           direction='diagonal'
           borderColor='#fff'
@@ -147,6 +146,7 @@ export default function LandingPage() {
           shape='square'
           hoverTrailAmount={5}
         />
+
         
 
         <div className="w-full bg-[#6366f1] border-y-2 border-black overflow-hidden py-2 relative z-10" data-purpose="status-marquee-strip">
@@ -202,8 +202,8 @@ export default function LandingPage() {
                     <span className="">VIEW THREAT REGISTRY →</span>
                   </Link>
                 </div>
-                <div className="w-full flex-1 min-h-[350px] lg:min-h-[420px] mt-2">
-                  <AsciiArtCanvas className="w-full h-full min-h-[350px] lg:min-h-[420px]" />
+                <div className="mt-12 flower-container">
+                  <video src="/flower.mp4" autoPlay loop muted playsInline aria-hidden="true" className="flower-animation" />
                 </div>
               </div>
               <div className="lg:col-span-6 w-full">
