@@ -43,8 +43,8 @@ RUN adduser --system --uid 1001 nextjs
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
-# Copy public folder (if exists, though Next 14 handles it, good practice to copy)
-# COPY --from=builder /app/public ./public
+# Copy public folder to serve static assets like images/gifs
+COPY --from=builder /app/public ./public
 
 # Automatically leverage output traces to reduce image size
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
