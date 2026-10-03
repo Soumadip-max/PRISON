@@ -1,3 +1,6 @@
+import pathlib
+
+PAGE = """\
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import AttackGraph from '@/components/AttackGraph';
@@ -74,7 +77,7 @@ export default function SandboxPage() {
       setApiStatus(data.status);
       addLine('running','[PRISON] Sandbox ID: '+data.execution_id);
       let fullName='demo/repo', prNum=42;
-      try { const m=url.match(/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/); if(m){fullName=m[1];prNum=+m[2];} } catch{}
+      try { const m=url.match(/github\\.com\\/([^/]+\\/[^/]+)\\/pull\\/(\\d+)/); if(m){fullName=m[1];prNum=+m[2];} } catch{}
       setRepoMeta({fullName,prNumber:prNum});
       data.terminal_logs.forEach((l,i)=>setTimeout(()=>addLine(l.type,l.msg),i*280));
       const base = data.terminal_logs.length*280;
@@ -128,7 +131,7 @@ export default function SandboxPage() {
       <script dangerouslySetInnerHTML={{__html:TW_CFG}}/>
       <ToastContainer/>
       <div className="crt-overlay font-mono antialiased min-h-screen bg-[#05070a]">
-        <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 relative z-0">
+        <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 relative z-[100]">
 
           {/* Header */}
           <section className="mb-7">
@@ -317,3 +320,7 @@ export default function SandboxPage() {
     </>
   );
 }
+"""
+
+pathlib.Path('apps/web/src/app/sandbox/page.js').write_text(PAGE, encoding='utf-8')
+print('Written OK', len(PAGE), 'bytes')

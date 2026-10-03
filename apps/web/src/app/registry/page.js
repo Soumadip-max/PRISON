@@ -94,7 +94,7 @@ export default function RegistryPage() {
         <ToastContainer />
         
 
-        <main className="flex-grow w-full max-w-[1720px] mx-auto px-4 lg:px-8 py-6 space-y-6 relative z-[100]">
+        <main className="flex-grow w-full max-w-[1720px] mx-auto px-4 lg:px-8 py-6 space-y-6 relative z-0">
           <section className="space-y-1.5" data-purpose="title-section">
             <div className="flex items-center space-x-2.5">
               <span className="text-xl leading-none text-slate-100 select-none">📁</span>
@@ -320,7 +320,7 @@ export default function RegistryPage() {
           </section>
         </main>
 
-        <footer className="w-full border-t border-prison-border bg-[#05070a] py-4 px-4 lg:px-8 mt-10 text-[10px] font-mono text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2 z-[100] relative">
+        <footer className="w-full border-t border-prison-border bg-[#05070a] py-4 px-4 lg:px-8 mt-10 text-[10px] font-mono text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2 z-0 relative">
           <div className="">
             © 2026 PRISON — PULL REQUEST ISOLATION &amp; SECURITY OBSERVATION NETWORK
           </div>

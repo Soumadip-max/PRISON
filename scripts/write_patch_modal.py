@@ -1,3 +1,6 @@
+import pathlib
+
+MODAL = """\
 'use client';
 import React, { useState } from 'react';
 
@@ -91,7 +94,7 @@ export default function PatchReviewModal({ patch, repoFullName, prNumber, onClos
       {/* Diff viewer */}
       <div style={{background:'#030507',border:'1px solid #1e293b',padding:'1rem',marginBottom:'1.25rem',overflowX:'auto',maxHeight:320,overflowY:'auto'}}>
         <pre style={{margin:0,fontSize:'.75rem',lineHeight:1.7,whiteSpace:'pre-wrap'}}>
-          {diffText.split('\n').map((line, idx) => {
+          {diffText.split('\\n').map((line, idx) => {
             let color = '#64748b';
             if (line.startsWith('+') && !line.startsWith('+++')) color = '#10b981';
             else if (line.startsWith('-') && !line.startsWith('---')) color = '#ef4444';
@@ -143,3 +146,7 @@ export default function PatchReviewModal({ patch, repoFullName, prNumber, onClos
     </div>
   );
 }
+"""
+
+pathlib.Path('apps/web/src/components/agent/PatchReviewModal.tsx').write_text(MODAL, encoding='utf-8')
+print('PatchReviewModal written OK', len(MODAL), 'bytes')

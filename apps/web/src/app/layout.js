@@ -1,6 +1,18 @@
+import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 import ToastContainer from '@/components/Toast';
 import Navbar from '@/components/Navbar';
+import { JetBrains_Mono, Inter } from 'next/font/google';
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+});
 
 export const metadata = {
   title: 'PRISON — Pull Request Isolation & Security Observation Network',
@@ -74,10 +86,12 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body style={{ margin: 0, padding: 0 }} className="bg-[#06070a]">
-        <Navbar />
-        {children}
-        <ToastContainer />
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans bg-[#090D16] text-slate-100 antialiased`}>
+        <ClerkProvider>
+          <Navbar />
+          {children}
+          <ToastContainer />
+        </ClerkProvider>
       </body>
     </html>
   );
