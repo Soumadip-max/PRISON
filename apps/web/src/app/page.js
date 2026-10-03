@@ -191,7 +191,7 @@ export default function LandingPage() {
                   </Link>
                 </div>
                 <div className="mt-12 flower-container">
-                  <img src="/flower.gif" alt="" className="flower-animation" />
+                  <video src="/flower.mp4" autoPlay loop muted playsInline aria-hidden="true" className="flower-animation" />
                 </div>
               </div>
               <div className="lg:col-span-6 w-full">
