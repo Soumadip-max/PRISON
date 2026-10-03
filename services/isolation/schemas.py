@@ -18,6 +18,7 @@ class SandboxExecutionRequest(BaseModel):
     repo_url: str
     commit_sha: str
     pr_number: int
+    local_path: Optional[str] = None
     timeout_seconds: int = 30
     honeypots: HoneypotCredentials = Field(default_factory=HoneypotCredentials)
 

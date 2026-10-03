@@ -2,9 +2,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import AttackGraph from '@/components/AttackGraph';
-import DiffViewer from '@/components/DiffViewer';
+import PatchReviewModal from '@/components/agent/PatchReviewModal';
 import ToastContainer, { toast } from '@/components/Toast';
-import { mockDetonation, buildMockDAG, MOCK_PATCH, MOCK_EVENTS } from '@/lib/api';
+import { api } from '@/lib/api';
 
 const STAGES = ['idle', 'detonating', 'observing', 'analyzing', 'patching', 'done'];
 
@@ -32,10 +32,11 @@ export default function SandboxPage() {
   const addLine = (type, msg) =>
     setTermLines((prev) => [...prev, { type, msg, ts: new Date().toISOString() }]);
 
+  const [repoMeta, setRepoMeta]     = useState({ fullName: 'demo/repo', prNumber: 42 });
+  const [apiStatus, setApiStatus]   = useState(null); // 'SAFE' | 'BREACH_DETECTED' | 'ERROR'
+
   const handleDetonate = async () => {
     const url = prUrl.trim() || 'https://github.com/test/repo/pull/42';
-    const id = `sbx_${Math.random().toString(36).slice(2, 14)}`;
-    setSandboxId(id);
     setStage('detonating');
     setTermLines([]);
     setEvents([]);
@@ -43,52 +44,74 @@ export default function SandboxPage() {
     setPatch(null);
     setSelectedNode(null);
     setThreatReport(null);
+    setApiStatus(null);
 
     addLine('agent', `[PRISON] Initiating detonation for: ${url}`);
-    addLine('running', `[PRISON] Sandbox ID: ${id}`);
-
-    const duration = mockDetonation(id, ({ type, msg }) => {
-      const termTypeMap = { PASS: 'success', BREACH: 'breach', RUNNING: 'running', AGENT: 'agent', SYSTEM: 'line' };
-      addLine(termTypeMap[type] || 'line', msg);
-
-      // Stage transitions based on messages
-      if (msg.includes('Probes attached')) setStage('observing');
-      if (msg.includes('TRACECOMMON')) {
-        setStage('analyzing');
-        setEvents(MOCK_EVENTS);
-      }
-      if (msg.includes('ANAKIN')) {
-        setThreatReport({
-          threat_detected: true,
-          severity_score: 95,
-          confidence_score: 0.98,
-          summary: "Decoy Honeypot secret key AWS_ACCESS_KEY_ID accessed by process 'node' (PID: 2042).",
-          attack_vector: "Process node executed sys_enter_openat targeting honeypot key.",
-          gating_action: 'BLOCK_PR',
-        });
-        setDag(buildMockDAG(id));
-      }
-      if (msg.includes('patch committed') || msg.includes('Patch committed')) {
-        setStage('patching');
-        setPatch({ ...MOCK_PATCH, branch_name: `prison/fix-security-${id.slice(4, 12)}` });
-        setTimeout(() => setStage('done'), 300);
-      }
-    });
-
-    // Try real backend (falls back to mock seamlessly)
+    
     try {
-      const res = await fetch('/api/orchestrator/api/v1/webhook/github', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Hub-Signature-256': 'sha256=demo' },
-        body: JSON.stringify({
-          action: 'opened', number: 42,
-          pull_request: { number: 42, state: 'open', title: 'feat: test sandbox', head: { ref: 'test', sha: 'abc123', clone_url: url } },
-          repository: { id: 1, name: 'repo', full_name: 'test/repo', clone_url: url, default_branch: 'main' },
-        }),
+      const data = await api.detonateSync(url);
+      setSandboxId(data.execution_id);
+      setApiStatus(data.status);
+      addLine('running', `[PRISON] Sandbox ID: ${data.execution_id}`);
+
+      // Extract repo meta from URL for patch card
+      let fullName = 'demo/repo', prNum = 42;
+      try {
+        const m = url.match(/github\.com\/([^\/]+\/[^\/]+)\/pull\/(\d+)/);
+        if (m) { fullName = m[1]; prNum = parseInt(m[2]); }
+      } catch {}
+      setRepoMeta({ fullName, prNumber: prNum });
+      
+      data.terminal_logs.forEach((log, i) => {
+        setTimeout(() => addLine(log.type, log.msg), i * 300);
       });
-      if (res.ok) addLine('success', '[PRISON] ✓ Backend orchestrator acknowledged (HTTP 202)');
-    } catch {
-      addLine('line', '[PRISON] Running in offline demo mode — mock pipeline active.');
+      
+      const baseDelay = data.terminal_logs.length * 300;
+
+      setTimeout(() => {
+        setEvents(data.ebpf_events || []);
+        setStage('observing');
+      }, baseDelay);
+      
+      setTimeout(() => {
+        if (data.nodes && data.nodes.length > 0) {
+          setDag({
+            execution_id: data.execution_id,
+            nodes: data.nodes,
+            edges: data.edges || [],
+            has_honeypot_hit: data.severity > 80,
+            has_malicious_node: data.severity > 50,
+          });
+        }
+        setThreatReport({
+          threat_detected: data.severity > 0,
+          severity_score: data.severity,
+          confidence_score: data.confidence,
+          summary: data.summary || 'Analysis complete.',
+          attack_vector: 'Dynamic eBPF syscall tracing.',
+          gating_action: data.gating_action || 'ALLOW_MERGE',
+        });
+        setStage(data.severity > 0 ? 'analyzing' : 'done');
+      }, baseDelay + 1000);
+      
+      // Only set patch if severity > 0 AND patch_diff is non-null/non-empty
+      setTimeout(() => {
+        const hasPatch = data.patch_diff && data.patch_diff.trim().length > 0;
+        if (data.severity > 0 && hasPatch) {
+          setStage('patching');
+          setPatch({
+            target_file: 'package.json',
+            branch_name: `prison/fix-security-${data.execution_id.slice(4, 12)}`,
+            summary: data.summary || 'Security threat neutralized.',
+            unified_diff: data.patch_diff,
+          });
+          setTimeout(() => setStage('done'), 500);
+        }
+      }, baseDelay + 2000);
+
+    } catch (err) {
+      addLine('breach', `[PRISON] Detonation failed: ${err.message}`);
+      setStage('idle');
     }
   };
 
@@ -312,13 +335,46 @@ export default function SandboxPage() {
           </div>
         )}
 
-        {/* ── Patch & Remediation ─────────────── */}
-        {patch && (
-          <div>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '1rem' }}>
-              🤖 ANAKIN Patch & Remediation
-            </h2>
-            <DiffViewer patch={patch} onCommit={handleCommit} onReject={handleReject} loading={commitLoading} />
+        {/* -- Clean Safe Banner (only when SAFE and no patch) -- */}
+        {apiStatus === 'SAFE' && !patch && threatReport && stage === 'done' && (
+          <div style={{
+            marginTop: '2rem',
+            background: 'linear-gradient(135deg, rgba(0,255,163,0.08), rgba(0,255,163,0.03))',
+            border: '1px solid var(--green)',
+            borderRadius: 12,
+            padding: '1.75rem',
+            display: 'flex', alignItems: 'center', gap: '1.25rem',
+          }}>
+            <div style={{ fontSize: '2.5rem', lineHeight: 1 }}>✅</div>
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-display)', color: 'var(--green)',
+                fontWeight: 700, fontSize: '1rem', letterSpacing: '0.06em',
+                textTransform: 'uppercase', marginBottom: '0.4rem',
+              }}>
+                [SAFE] No Security Vulnerabilities Detected
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: 0, lineHeight: 1.6 }}>
+                {threatReport.summary}
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                <span className="badge badge-green">✓ ALLOW_MERGE</span>
+                <span className="badge badge-muted">Confidence {((threatReport.confidence_score || 0.97) * 100).toFixed(0)}%</span>
+                <span className="badge badge-muted">Severity 0/100</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* -- Patch & Remediation (only when severity > 0 AND patch exists) -- */}
+        {patch && threatReport && threatReport.severity_score > 0 && (
+          <div style={{ marginTop: '2rem' }}>
+            <PatchReviewModal 
+              patch={patch} 
+              repoFullName={repoMeta.fullName}
+              prNumber={repoMeta.prNumber}
+              onClose={() => toast('Patch process completed.', 'success')} 
+            />
           </div>
         )}
       </div>

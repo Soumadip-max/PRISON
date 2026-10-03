@@ -1,5 +1,6 @@
 """
 ANAKIN AI Agent Triage Engine with LLM Integration and Rule R08 Confidence Gating.
+Now uses LLMFactory for multi-provider support: DeepSeek → OpenAI → Anthropic → rule-based.
 """
 
 import json
@@ -9,6 +10,7 @@ from typing import Any, Dict, Optional
 from services.agent.triage.prompts import SYSTEM_TRIAGE_PROMPT, USER_TRIAGE_PROMPT_TEMPLATE
 from services.agent.triage.schemas import GatingAction, ThreatReport
 from services.telemetry.schemas.graph import ExecutionDAG, NodeType
+from services.agent.llm_factory import LLMFactory
 
 
 class AnakinTriageEngine:
@@ -17,8 +19,12 @@ class AnakinTriageEngine:
     """
 
     def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o"):
+        # Legacy single-key init kept for backward compat; factory takes priority
         self.api_key = api_key or os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
         self.model = model
+        # Prefer factory-resolved provider (DeepSeek > OpenAI > Anthropic > None)
+        self._llm_provider = LLMFactory.get_provider()
+        self._provider_name = LLMFactory.get_provider_name()
 
     async def evaluate_dag(self, dag: ExecutionDAG) -> ThreatReport:
         """
@@ -100,40 +106,34 @@ class AnakinTriageEngine:
 
     async def _call_llm_triage(self, dag: ExecutionDAG) -> Dict[str, Any]:
         """
-        Calls external LLM endpoint if configured.
+        Calls the LLM provider resolved by LLMFactory.
+        Priority: DeepSeek (deepseek-chat) → OpenAI (gpt-4o) → Anthropic → rule-based.
+        Falls back to rule-based triage on any failure.
         """
-        # Fallback to rule-based parser if LLM request fails or library uninstalled
+        provider = self._llm_provider
+        if provider is None:
+            return self._rule_based_triage(dag)
+
         try:
-            import http
-            async with http.AsyncClient(timeout=15.0) as client:
-                prompt_content = USER_TRIAGE_PROMPT_TEMPLATE.format(
-                    execution_id=dag.execution_id,
-                    total_nodes=len(dag.nodes),
-                    has_honeypot_hit=dag.has_honeypot_hit,
-                    has_malicious_node=dag.has_malicious_node,
-                    nodes_json=json.dumps([n.model_dump(mode="json") for n in dag.nodes]),
-                    edges_json=json.dumps([e.model_dump(mode="json") for e in dag.edges]),
+            dag_json = json.dumps({
+                "execution_id": dag.execution_id,
+                "total_nodes": len(dag.nodes),
+                "has_honeypot_hit": dag.has_honeypot_hit,
+                "has_malicious_node": dag.has_malicious_node,
+                "nodes": [n.model_dump(mode="json") for n in dag.nodes],
+                "edges": [e.model_dump(mode="json") for e in dag.edges],
+            })
+            result = await provider.call_triage(dag_json)
+            if result and isinstance(result, dict):
+                import logging
+                logging.getLogger(__name__).info(
+                    f"[ANAKIN] LLM triage succeeded via {provider.provider_name}."
                 )
-                response = await client.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {self.api_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": self.model,
-                        "messages": [
-                            {"role": "system", "content": SYSTEM_TRIAGE_PROMPT},
-                            {"role": "user", "content": prompt_content},
-                        ],
-                        "response_format": {"type": "json_object"},
-                    },
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    content = data["choices"][0]["message"]["content"]
-                    return json.loads(content)
-        except Exception:
-            pass
+                return result
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"[ANAKIN] LLM triage failed ({provider.provider_name}): {e}. Falling back to rule-based."
+            )
 
         return self._rule_based_triage(dag)
