@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import AttackGraph from '@/components/AttackGraph';
@@ -135,206 +136,237 @@ export default function SandboxPage() {
     done:       { label: '✓ COMPLETE', cls: 'badge-green' },
   }[stage];
 
-  return (
+          </section>  return (
     <>
-      <Navbar />
-      <ToastContainer />
-      <div style={{ padding: '2rem', minHeight: 'calc(100vh - 64px - 36px)' }}>
-        {/* ── Page Header ────────────────────── */}
-        <div className="page-header" style={{ marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-            <h1 className="page-title">⚡ Manual Detonation Sandbox</h1>
-            <span className={`badge ${stageBadge.cls}`}>{stageBadge.label}</span>
-          </div>
-          <p className="page-subtitle">Paste a GitHub PR URL and watch PRISON detonate it inside a Firecracker microVM with live eBPF tracing.</p>
-        </div>
+      
+      
+      
+      
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            tailwind.config = {
+              theme: {
+                extend: {
+                  colors: {
+                    retroBg: '#05070a',
+                    retroCard: '#0a0e1a',
+                    retroPanel: '#070b14',
+                    retroBorder: '#1c2438',
+                    retroBorderBright: '#3b4b73',
+                    silkIndigo: '#6366f1',
+                    silkIndigoLight: '#818cf8',
+                    pixelCyan: '#06b6d4',
+                    neonGreen: '#10b981',
+                    neonRed: '#ef4444',
+                    neonYellow: '#f59e0b'
+                  },
+                  fontFamily: {
+                    pixel: ['"Silkscreen"', '"Press Start 2P"', 'monospace'],
+                    arcade: ['"Press Start 2P"', 'cursive'],
+                    vt: ['"VT323"', 'monospace'],
+                    mono: ['"JetBrains Mono"', 'monospace']
+                  }
+                }
+              }
+            };
+          `,
+        }}
+      />
+      <style dangerouslySetInnerHTML={{
+        __html: `
+    body {
+      background-color: #05070a !important;
+      color: #e2e8f0;
+      image-rendering: pixelated;
+    }
 
-        {/* ── Input Panel ───────────────────── */}
-        <div className="glass-card glass-card-cyan" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.25rem' }}>
-            <div className="input-group">
-              <label className="input-label" htmlFor="pr-url-input">GitHub Pull Request URL or SHA</label>
-              <input
-                id="pr-url-input"
-                className="input-field"
-                type="text"
-                placeholder="https://github.com/org/repo/pull/42"
-                value={prUrl}
-                onChange={(e) => setPrUrl(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && stage === 'idle' && handleDetonate()}
-                disabled={stage !== 'idle' && stage !== 'done'}
-              />
-            </div>
-            <button
-              id="btn-detonate"
-              className={`btn ${stage === 'idle' || stage === 'done' ? 'btn-primary' : 'btn-ghost'} btn-lg`}
-              onClick={() => { setStage('idle'); setTimeout(handleDetonate, 50); }}
-              disabled={stage !== 'idle' && stage !== 'done'}
-              style={{ whiteSpace: 'nowrap' }}
-            >
-              {stage === 'idle' || stage === 'done' ? '⚡ Detonate in MicroVM' : '⏳ Running…'}
-            </button>
-          </div>
+    .crt-overlay::before {
+      content: " ";
+      display: block;
+      position: fixed;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      z-index: 50;
+      background-size: 100% 3px, 6px 100%;
+      pointer-events: none;
+    }
 
-          {/* Config Toggles */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-            {[
-              { id: 'toggle-honeypot', label: 'Inject Honeypots', sub: 'AWS, GH_TOKEN decoy keys', val: injectHoneypot, set: setInject },
-              { id: 'toggle-socket',   label: 'Block Outbound Sockets', sub: 'Deny all external TCP', val: blockSocket,   set: setBlockSocket },
-              { id: 'toggle-cache',    label: 'Bypass Cache', sub: 'Force fresh detonation', val: bypassCache,   set: setBypassCache },
-            ].map((t) => (
-              <div key={t.id} className="toggle-row" style={{ padding: '0.75rem', borderRadius: 8, border: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-                <div>
-                  <div className="toggle-label">{t.label}</div>
-                  <div className="toggle-sub">{t.sub}</div>
-                </div>
-                <label className="toggle">
-                  <input id={t.id} type="checkbox" checked={t.val} onChange={(e) => t.set(e.target.checked)} />
-                  <span className="toggle-slider" />
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
+    .pixel-box-shadow {
+      box-shadow: 3px 3px 0px 0px #000000, 4px 4px 0px 0px #1e293b;
+    }
 
-        {/* ── Split Window: Terminal + eBPF Stream ── */}
-        <div className="sandbox-split" style={{ marginBottom: '1.5rem' }}>
-          {/* Left: Live Terminal */}
-          <div className="terminal" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
-            <div className="terminal-header">
-              <div className="terminal-dot red" />
-              <div className="terminal-dot amber" />
-              <div className="terminal-dot green" />
-              <span className="terminal-title">
-                {sandboxId ? `PRISON Terminal — ${sandboxId}` : 'PRISON Terminal — Awaiting Detonation'}
+    .pixel-box-shadow-accent {
+      box-shadow: 3px 3px 0px 0px #000000, 5px 5px 0px 0px #6366f1;
+    }
+
+    .pixel-box-shadow-cyan {
+      box-shadow: 3px 3px 0px 0px #000000, 4px 4px 0px 0px #06b6d4;
+    }
+
+    .pixel-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px 0px #000000;
+    }
+
+    @keyframes retro-blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    .pixel-cursor {
+      display: inline-block;
+      width: 9px;
+      height: 1.15em;
+      background-color: #10b981;
+      vertical-align: text-bottom;
+      animation: retro-blink 0.9s infinite;
+    }
+    .pixel-cursor-cyan {
+      background-color: #06b6d4;
+    }
+
+    .retro-switch-bg {
+      width: 44px;
+      height: 22px;
+      position: relative;
+      border: 2px solid #1e293b;
+      background-color: #0c111f;
+      cursor: pointer;
+    }
+    .retro-switch-bg.active {
+      background-color: #06b6d4;
+      border-color: #22d3ee;
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+    }
+    .retro-switch-knob {
+      width: 14px;
+      height: 14px;
+      background-color: #475569;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: all 0.1s steps(2);
+    }
+    .retro-switch-bg.active .retro-switch-knob {
+      left: 24px;
+      background-color: #021e28;
+    }
+        `
+      }} />
+
+      <div className="crt-overlay font-mono antialiased min-h-screen flex flex-col justify-between selection:bg-silkIndigo selection:text-white">
+        <ToastContainer />
+        
+
+        <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1 relative z-[100]">
+          <section className="mb-7" data-purpose="page-title">
+            <div className="flex items-center space-x-3 mb-2 flex-wrap gap-y-2">
+              <span className="text-neonYellow text-xl animate-pulse">⚡</span>
+              <h1 className="font-pixel text-xl sm:text-2xl md:text-3xl font-bold tracking-wide text-white uppercase">
+                MANUAL DETONATION SANDBOX
+              </h1>
+              <span className="font-pixel text-[10px] bg-slate-900 text-slate-400 border border-slate-700 px-2.5 py-1 tracking-widest uppercase">
+                READY
               </span>
             </div>
-            <div className="terminal-body" ref={termRef} style={{ flex: 1, overflowY: 'auto' }}>
-              {termLines.length === 0 && (
-                <div className="term-prompt" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
-                  Paste a PR URL above and click ⚡ Detonate.<br />
-                  <span style={{ opacity: 0.5 }}>The full pipeline will run and stream here.</span>
-                </div>
-              )}
-              {termLines.map((line, i) => (
-                <div key={i} className={`term-${line.type}`} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', marginBottom: '2px', wordBreak: 'break-all' }}>
-                  <span style={{ color: 'var(--text-muted)', marginRight: '0.75rem', fontSize: '0.65rem' }}>
-                    {new Date(line.ts).toLocaleTimeString()}
-                  </span>
-                  {line.msg}
-                </div>
-              ))}
-              {stage !== 'idle' && stage !== 'done' && (
-                <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem' }}>
-                  <span className="term-prompt" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>prison@kernel:~$</span>
-                  <span className="cursor-blink" style={{ color: 'var(--cyan)', fontFamily: 'var(--font-mono)' }}>█</span>
-                </div>
-              )}
-            </div>
-          </div>
+            <p className="font-mono text-xs sm:text-sm text-slate-400 max-w-4xl tracking-tight">
+              Paste a GitHub PR URL and watch PRISON detonate it inside a Firecracker microVM with live eBPF tracing.
+            </p>
+          </section>
 
-          {/* Right: eBPF Event Stream */}
-          <div className="terminal" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
-            <div className="terminal-header">
-              <div className="terminal-dot red" />
-              <div className="terminal-dot amber" />
-              <div className="terminal-dot green" />
-              <span className="terminal-title">OSEN eBPF — Syscall Event Stream</span>
-              {events.length > 0 && (
-                <span className="badge badge-amber" style={{ marginLeft: 'auto' }}>{events.length} events</span>
-              )}
-            </div>
-            <div className="terminal-body" style={{ flex: 1, overflowY: 'auto' }}>
-              {events.length === 0 && (
-                <div className="term-prompt" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
-                  Kernel events will stream here during sandbox execution.
-                </div>
-              )}
-              {events.map((ev, i) => {
-                const isAnomaly = ev.is_anomaly;
-                const typeColors = { EXECVE: 'var(--cyan)', CONNECT: 'var(--red)', OPENAT: 'var(--amber)', HONEYPOT_TRIGGER: 'var(--red)' };
-                const c = typeColors[ev.event_type] || 'var(--text-secondary)';
-                const details = ev.details;
-                const detailStr = details.argv ? details.argv.join(' ') : details.ip ? `${details.ip}:${details.port}` : details.filename || details.honeypot_key || '';
-                return (
-                  <div key={i} style={{ marginBottom: '6px', padding: '6px 8px', borderRadius: 6, background: isAnomaly ? 'rgba(255,45,85,0.06)' : 'transparent', borderLeft: isAnomaly ? '2px solid var(--red)' : '2px solid transparent', fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <span style={{ color: c, fontWeight: 700 }}>{ev.event_type}</span>
-                      <span style={{ color: 'var(--text-muted)' }}>PID {ev.pid}</span>
-                      <span style={{ color: 'var(--text-primary)' }}>{ev.comm}</span>
-                      {isAnomaly && <span className="badge badge-red" style={{ fontSize: '0.6rem', padding: '1px 6px' }}>ANOMALY</span>}
-                    </div>
-                    {detailStr && <div style={{ color: 'var(--text-secondary)', marginTop: '2px', paddingLeft: '0.5rem', wordBreak: 'break-all' }}>→ {detailStr}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Attack Graph (shown after analysis) ── */}
-        {dag && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <div>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  TRACECOMMON Attack Graph
-                </h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '2px' }}>Click any node to inspect its syscall details.</p>
+          <section className="bg-retroCard border-2 border-retroBorder p-5 sm:p-6 mb-8 pixel-box-shadow" data-purpose="detonation-form-panel">
+            <label className="block font-pixel text-[11px] text-slate-400 uppercase tracking-widest mb-3" htmlFor="pr-url-input">
+              GITHUB PULL REQUEST URL OR SHA
+            </label>
+            <div className="flex flex-col md:flex-row gap-3 items-stretch mb-6">
+              <div className="relative flex-1">
+                <input className="w-full bg-[#05070c] text-emerald-400 font-mono text-sm px-4 py-3.5 border-2 border-retroBorder focus:border-indigo-400 focus:ring-0 focus:outline-none transition-none shadow-inner" id="pr-url-input" placeholder="https://github.com/owner/repository/pull/123" type="text" defaultValue="https://github.com/org/repo/pull/42" />
               </div>
-              {threatReport && (
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                  <span className="badge badge-red">
-                    <span className="pulse-dot red" />
-                    Severity {threatReport.severity_score}/100
-                  </span>
-                  <span className="badge badge-amber">Confidence {(threatReport.confidence_score * 100).toFixed(0)}%</span>
-                  <span className="badge badge-red">{threatReport.gating_action?.replace('_', ' ')}</span>
-                </div>
-              )}
+              <button className="pixel-btn bg-indigo-500 hover:bg-indigo-400 text-black font-arcade text-xs px-6 py-3.5 border-2 border-white pixel-box-shadow-accent flex items-center justify-center gap-2 font-bold tracking-wider shrink-0 uppercase">
+                <span className="text-sm">⚡</span>
+                <span className="">DETONATE IN MICROVM</span>
+              </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem' }}>
-              <AttackGraph dag={dag} onNodeClick={setSelectedNode} />
-
-              {/* Node Inspector */}
-              <div className="glass-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--cyan)' }}>
-                  Node Inspector
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pt-5 border-t border-retroBorder">
+              <div className="flex items-center justify-between p-3 bg-retroPanel border border-retroBorder">
+                <div>
+                  <div className="font-pixel text-xs text-white font-bold uppercase mb-0.5">Inject Honeypots</div>
+                  <div className="font-mono text-[11px] text-slate-400">AWS, GH_TOKEN decoy keys</div>
                 </div>
-                {selectedNode ? (
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {[
-                      ['PID', selectedNode.pid],
-                      ['PPID', selectedNode.ppid],
-                      ['COMM', selectedNode.comm],
-                      ['SYSCALL', selectedNode.syscall],
-                      ['TYPE', selectedNode.node_type],
-                      ['RISK', selectedNode.details?.risk_level],
-                      ['PATH', selectedNode.details?.resolved_path || '—'],
-                      ['IP', selectedNode.details?.destination_ip || '—'],
-                    ].map(([k, v]) => (
-                      <div key={k} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.4rem' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>{k}</span>
-                        <span style={{ color: selectedNode.node_type.includes('RED') ? 'var(--red)' : selectedNode.node_type.includes('AMBER') ? 'var(--amber)' : 'var(--text-primary)' }}>{String(v)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Click a node in the graph to inspect its syscall details.</p>
-                )}
+                <div className="retro-switch-bg active ml-3 shrink-0" data-purpose="toggle-honeypots" onClick={(e) => e.currentTarget.classList.toggle('active')}>
+                  <div className="retro-switch-knob"></div>
+                </div>
+              </div>
 
-                {threatReport && (
-                  <div style={{ marginTop: '0.5rem', padding: '0.875rem', background: 'var(--red-dim)', borderRadius: 8, border: '1px solid rgba(255,45,85,0.25)' }}>
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--red)', marginBottom: '0.4rem' }}>ANAKIN TRIAGE SUMMARY</div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{threatReport.summary}</p>
-                  </div>
-                )}
+              <div className="flex items-center justify-between p-3 bg-retroPanel border border-retroBorder">
+                <div>
+                  <div className="font-pixel text-xs text-white font-bold uppercase mb-0.5">Block Outbound Sockets</div>
+                  <div className="font-mono text-[11px] text-slate-400">Deny all external TCP</div>
+                </div>
+                <div className="retro-switch-bg active ml-3 shrink-0" data-purpose="toggle-sockets" onClick={(e) => e.currentTarget.classList.toggle('active')}>
+                  <div className="retro-switch-knob"></div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-retroPanel border border-retroBorder">
+                <div>
+                  <div className="font-pixel text-xs text-slate-300 font-bold uppercase mb-0.5">Bypass Cache</div>
+                  <div className="font-mono text-[11px] text-slate-500">Force fresh detonation</div>
+                </div>
+                <div className="retro-switch-bg ml-3 shrink-0" data-purpose="toggle-cache" onClick={(e) => e.currentTarget.classList.toggle('active')}>
+                  <div className="retro-switch-knob"></div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          </section>
 
+          <section className="grid grid-cols-1 lg:grid-cols-2 gap-6" data-purpose="dual-terminal-monitors">
+            <div className="border-2 border-retroBorder bg-[#04060a] pixel-box-shadow flex flex-col min-h-[380px]">
+              <div className="bg-retroPanel border-b-2 border-retroBorder px-4 py-2.5 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="w-3 h-3 bg-neonRed inline-block border border-black"></span>
+                  <span className="w-3 h-3 bg-neonYellow inline-block border border-black"></span>
+                  <span className="w-3 h-3 bg-neonGreen inline-block border border-black"></span>
+                </div>
+                <div className="font-pixel text-[10px] tracking-wider text-slate-400 uppercase">
+                  PRISON TERMINAL � AWAITING DETONATION
+                </div>
+                <div className="w-8"></div>
+              </div>
+              <div className="p-5 font-mono text-xs sm:text-sm text-slate-400 leading-relaxed flex-1 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <p className="text-slate-400">Paste a PR URL above and click <span className="text-neonYellow">? Detonate</span>.</p>
+                  <p className="text-slate-500">The full pipeline will run and stream here.</p>
+                </div>
+                <div className="mt-8 text-slate-400 pt-4 border-t border-retroBorder/40">
+                  <span className="text-emerald-500 font-bold">prison@sandbox</span>:<span className="text-cyan-400 font-bold">~$</span> <span className="pixel-cursor"></span>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-2 border-retroBorder bg-[#04060a] pixel-box-shadow flex flex-col min-h-[380px]">
+              <div className="bg-retroPanel border-b-2 border-retroBorder px-4 py-2.5 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="w-3 h-3 bg-neonRed inline-block border border-black"></span>
+                  <span className="w-3 h-3 bg-neonYellow inline-block border border-black"></span>
+                  <span className="w-3 h-3 bg-neonGreen inline-block border border-black"></span>
+                </div>
+                <div className="font-pixel text-[10px] tracking-wider text-slate-400 uppercase">
+                  OSEN EBPF � SYSCALL EVENT STREAM
+                </div>
+                <div className="w-8"></div>
+              </div>
+              <div className="p-5 font-mono text-xs sm:text-sm text-slate-400 leading-relaxed flex-1 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <p className="text-slate-500">Kernel events will stream here during sandbox execution.</p>
+                </div>
+                <div className="mt-8 text-slate-400 pt-4 border-t border-retroBorder/40">
+                  <span className="text-indigo-400 font-bold">ebpf::ringbuf</span>:<span className="text-cyan-400 font-bold">[0]</span> <span className="pixel-cursor pixel-cursor-cyan"></span>
+                </div>
+              </div>
+            </div>
+          </section>
         {/* -- Clean Safe Banner (only when SAFE and no patch) -- */}
         {apiStatus === 'SAFE' && !patch && threatReport && stage === 'done' && (
           <div style={{
@@ -375,9 +407,10 @@ export default function SandboxPage() {
               prNumber={repoMeta.prNumber}
               onClose={() => toast('Patch process completed.', 'success')} 
             />
-          </div>
-        )}
+          </section>          </div>
+        </footer>
       </div>
     </>
   );
 }
+
