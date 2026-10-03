@@ -70,11 +70,13 @@ services:
       - "8000:8000"
     environment:
       - PORT=8000
-      - GITHUB_WEBHOOK_SECRET=prison_webhook_secret_key_2026
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-prison_webhook_secret_key_2026}
       - PRISON_DEV_MODE=true
       - TELEMETRY_URL=http://telemetry:8001
       - POSTGRES_URL=postgresql://prison:prison_secure_pass_2026@db:5432/prison
       - REDIS_URL=redis://redis:6379/0
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
     # Mount /dev/kvm for Firecracker microVM execution when supported by host; fallback to DIND/process isolation
     devices:
       - "/dev/kvm:/dev/kvm"
@@ -97,14 +99,24 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
     container_name: prison-web
     restart: always
     ports:
       - "3000:3000"
     environment:
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_TELEMETRY_URL=http://localhost:8001
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - NEXT_PUBLIC_TELEMETRY_URL=${NEXT_PUBLIC_TELEMETRY_URL:-http://localhost:8001}
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - NEXT_PUBLIC_CLERK_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
+      - NEXT_PUBLIC_CLERK_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
+      - ORCHESTRATOR_INTERNAL_URL=http://orchestrator:8000
+      - TELEMETRY_INTERNAL_URL=http://telemetry:8001
     depends_on:
       orchestrator:
         condition: service_healthy

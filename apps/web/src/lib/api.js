@@ -32,6 +32,14 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  /** Synchronous Detonation endpoint */
+  detonateSync: (url) =>
+    request(`${ORCH}/api/v1/detonate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    }),
+
   // ── Telemetry (port 8001) ──────────────────────────────
   /** Health check for telemetry service */
   telemetryHealth: () => request(`${TELE}/`),

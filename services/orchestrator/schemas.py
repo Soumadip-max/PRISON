@@ -36,6 +36,11 @@ class GitHubWebhookPayload(BaseModel):
     sender: Dict[str, Any] = Field(default_factory=dict)
 
 
+class LocalPathPayload(BaseModel):
+    source_type: str
+    target_path: str
+
+
 class WebhookResponse(BaseModel):
     status: str
     job_id: str

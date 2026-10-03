@@ -27,9 +27,15 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Environment variables
+# Environment variables — NEVER commit real credentials
 .env
+*.pem
+*.key
+
 # Firecracker and eBPF artifacts
 *.ext4
 vmlinux
 *.o
+
+# Ephemeral sandbox directories
+/tmp/prison-sandboxes/

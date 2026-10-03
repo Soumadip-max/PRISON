@@ -14,10 +14,20 @@ from services.telemetry.pipeline.dag_builder import DAGBuilder
 from services.agent.triage.engine import AnakinTriageEngine
 from services.telemetry.auth import get_current_user
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(
     title="PRISON Telemetry & eBPF Service",
     description="TRACECOMMON Telemetry Pipeline & Event Aggregator",
     version="0.1.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # In-memory telemetry log store
