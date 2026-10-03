@@ -1,6 +1,9 @@
 'use client';
 import Link from 'next/link';
 import ToastContainer from '@/components/Toast';
+import AsciiArtCanvas from '@/components/AsciiArtCanvas';
+import TechText from '@/components/TechText';
+import ShapeGrid from '@/components/ShapeGrid';
 
 export default function LandingPage() {
   return (
@@ -133,11 +136,20 @@ export default function LandingPage() {
         `
       }} />
 
-      <div className="bg-retroBg text-slate-200 font-pixel selection:bg-pixelCyan selection:text-black overflow-x-hidden antialiased min-h-screen">
+      <div className="bg-retroBg text-slate-200 font-pixel selection:bg-pixelCyan selection:text-black overflow-x-hidden antialiased min-h-screen relative z-0">
         <ToastContainer />
+        <ShapeGrid 
+          speed={0.15} 
+          squareSize={40}
+          direction='diagonal'
+          borderColor='#fff'
+          hoverFillColor='#222'
+          shape='square'
+          hoverTrailAmount={5}
+        />
         
 
-        <div className="w-full bg-[#6366f1] border-y-2 border-black overflow-hidden py-2" data-purpose="status-marquee-strip">
+        <div className="w-full bg-[#6366f1] border-y-2 border-black overflow-hidden py-2 relative z-10" data-purpose="status-marquee-strip">
           <div className="animate-marquee flex items-center text-white font-arcade text-[10px] tracking-wider uppercase">
             <span className="mx-3">◆ MICROVM ISOLATION</span>
             <span className="mx-3">◆ AI REMEDIATION</span>
@@ -160,10 +172,10 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <main>
+        <main className="relative z-10">
           <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 pt-16" data-purpose="hero-introduction" id="overview">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-start">
-              <div className="lg:col-span-6 flex flex-col items-start pt-2">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-stretch">
+              <div className="lg:col-span-6 flex flex-col items-start pt-2 h-full">
                 <div className="flex flex-wrap items-center gap-2 mb-6">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#ff2a5f1a] border-2 border-pixelRed text-pixelRed font-arcade text-[9px] uppercase tracking-wider">
                     <span className="w-1.5 h-1.5 bg-pixelRed inline-block"></span>
@@ -181,7 +193,7 @@ export default function LandingPage() {
                 <p className="font-mono text-slate-200 text-sm sm:text-base lg:text-lg leading-relaxed max-w-2xl mb-8 [text-shadow:2px_2px_0px_#000]">
                   PRISON detonates every Pull Request inside an isolated microVM, traces malicious syscalls with eBPF kernel probes, traps credential theft via honeypots, and auto-generates fix patches using the ANAKIN AI agent.
                 </p>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto mb-4">
                   <Link href="/sandbox" className="pixel-btn w-full sm:w-auto bg-[#6366f1] text-white font-arcade text-xs px-6 py-4 border-2 border-black shadow-[4px_4px_0px_#312e81] hover:bg-[#4f46e5] transition-all flex items-center justify-center gap-3">
                     <span className="text-[#fde047] font-bold">⚡</span>
                     <span className="">DETONATE A PR →</span>
@@ -190,8 +202,13 @@ export default function LandingPage() {
                     <span className="">VIEW THREAT REGISTRY →</span>
                   </Link>
                 </div>
+<<<<<<< HEAD
+                <div className="w-full flex-1 min-h-[350px] lg:min-h-[420px] mt-2">
+                  <AsciiArtCanvas className="w-full h-full min-h-[350px] lg:min-h-[420px]" />
+=======
                 <div className="mt-12 flower-container">
                   <video src="/flower.mp4" autoPlay loop muted playsInline aria-hidden="true" className="flower-animation" />
+>>>>>>> upstream/main
                 </div>
               </div>
               <div className="lg:col-span-6 w-full">
@@ -318,7 +335,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-[#0c101d] border-2 border-[#1b223c] p-6 shadow-[4px_4px_0px_#000] flex flex-col justify-between hover:border-[#818cf8] transition-all">
+              <div tabIndex="0" className="bg-[#0c101d] border-2 border-[#1b223c] p-6 shadow-[4px_4px_0px_#000] flex flex-col justify-between hover:border-[#818cf8] cursor-pointer active:bg-[#818cf8]/20 focus:bg-[#818cf8]/20 transition-all">
                 <div>
                   <div className="w-12 h-12 bg-black border-2 border-[#6366f1]/60 flex items-center justify-center mb-5 shadow-[2px_2px_0px_#000]">
                     <div className="w-6 h-6 flex flex-col items-center justify-center">
@@ -334,7 +351,7 @@ export default function LandingPage() {
                   </p>
                 </div>
               </div>
-              <div className="bg-[#0c101d] border-2 border-[#1b223c] p-6 shadow-[4px_4px_0px_#000] flex flex-col justify-between hover:border-pixelAmber transition-all">
+              <div tabIndex="0" className="bg-[#0c101d] border-2 border-[#1b223c] p-6 shadow-[4px_4px_0px_#000] flex flex-col justify-between hover:border-pixelAmber cursor-pointer active:bg-[#818cf8]/20 focus:bg-[#818cf8]/20 transition-all">
                 <div>
                   <div className="w-12 h-12 bg-black border-2 border-pixelAmber/60 flex items-center justify-center mb-5 shadow-[2px_2px_0px_#000]">
                     <div className="w-6 h-6 flex flex-col items-center justify-center">
@@ -352,7 +369,7 @@ export default function LandingPage() {
                   </p>
                 </div>
               </div>
-              <div className="bg-[#0c101d] border-2 border-[#1b223c] p-6 shadow-[4px_4px_0px_#000] flex flex-col justify-between hover:border-pixelGreen transition-all">
+              <div tabIndex="0" className="bg-[#0c101d] border-2 border-[#1b223c] p-6 shadow-[4px_4px_0px_#000] flex flex-col justify-between hover:border-pixelGreen cursor-pointer active:bg-[#818cf8]/20 focus:bg-[#818cf8]/20 transition-all">
                 <div>
                   <div className="w-12 h-12 bg-black border-2 border-pixelGreen/60 flex items-center justify-center mb-5 shadow-[2px_2px_0px_#000]">
                     <div className="w-6 h-6 flex items-end justify-between px-1">
@@ -368,7 +385,7 @@ export default function LandingPage() {
                   </p>
                 </div>
               </div>
-              <div className="bg-[#0c101d] border-2 border-[#1b223c] p-6 shadow-[4px_4px_0px_#000] flex flex-col justify-between hover:border-pixelRed transition-all">
+              <div tabIndex="0" className="bg-[#0c101d] border-2 border-[#1b223c] p-6 shadow-[4px_4px_0px_#000] flex flex-col justify-between hover:border-pixelRed cursor-pointer active:bg-[#818cf8]/20 focus:bg-[#818cf8]/20 transition-all">
                 <div>
                   <div className="w-12 h-12 bg-black border-2 border-pixelRed/60 flex items-center justify-center mb-5 shadow-[2px_2px_0px_#000]">
                     <div className="w-6 h-6 flex flex-col items-center justify-center">
@@ -466,7 +483,7 @@ export default function LandingPage() {
             </div>
           </section>
 
-          <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20 text-center" data-purpose="call-to-action-section">
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-12 text-center" data-purpose="call-to-action-section">
             <style dangerouslySetInnerHTML={{__html: `
               .logo-bg-scanlines {
                 background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 3px, transparent 3px, transparent 6px), linear-gradient(to bottom, #a5b4fc, #4f46e5);
@@ -481,22 +498,21 @@ export default function LandingPage() {
                 .logo-stroke-white { -webkit-text-stroke: 5px #fff; }
               }
             `}} />
-            <div className="relative inline-block my-12 sm:my-20">
-              <h2 className="relative font-arcade text-6xl sm:text-8xl lg:text-[140px] tracking-widest uppercase z-10 leading-none">
-                {/* Drop Shadow Black */}
-                <span className="absolute left-[6px] top-[6px] sm:left-[12px] sm:top-[12px] text-black logo-stroke-black">PRISON</span>
-                {/* Outer Black Border */}
-                <span className="absolute left-0 top-0 text-black logo-stroke-black">PRISON</span>
-                {/* Inner White Border */}
-                <span className="absolute left-0 top-0 text-white logo-stroke-white">PRISON</span>
-                {/* Text Fill with Scanlines */}
-                <span className="relative logo-bg-scanlines">PRISON</span>
-              </h2>
+            <div style={{ width: '100%', height: '240px', position: 'relative' }} className="my-2 sm:my-4 max-w-full overflow-hidden flex items-center justify-center">
+              <TechText
+                text="PRISON"
+                fontWeight={600}
+                fontSize={150}
+                reveal="letter"
+                dashLength={4}
+                dashGap={2}
+                specks={15}
+              />
             </div>
           </section>
         </main>
 
-        <footer className="border-t-4 border-[#171b30] bg-[#060812] pt-16 pb-12" data-purpose="site-footer" id="docs">
+        <footer className="relative z-10 border-t-4 border-[#171b30] bg-[#060812] pt-16 pb-12" data-purpose="site-footer" id="docs">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b-2 border-[#161a30]">
               <div className="lg:col-span-2">

@@ -16,7 +16,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#080914e6] backdrop-blur border-b-4 border-[#181a30]" data-purpose="primary-header">
+    <header className="sticky top-0 z-50 bg-[#080914] border-b-4 border-[#181a30]" data-purpose="primary-header">
       <div className="w-full max-w-[1600px] mx-auto px-6 md:px-8 xl:px-12 h-24 flex items-center justify-between">
         
         {/* LOGO SECTION */}

@@ -136,12 +136,8 @@ export default function SandboxPage() {
     done:       { label: '✓ COMPLETE', cls: 'badge-green' },
   }[stage];
 
-          </section>  return (
+  return (
     <>
-      
-      
-      
-      
       <script
         dangerouslySetInnerHTML={{
           __html: `
@@ -257,8 +253,7 @@ export default function SandboxPage() {
       <div className="crt-overlay font-mono antialiased min-h-screen flex flex-col justify-between selection:bg-silkIndigo selection:text-white">
         <ToastContainer />
         
-
-        <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1 relative z-[100]">
+        <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1 relative z-40">
           <section className="mb-7" data-purpose="page-title">
             <div className="flex items-center space-x-3 mb-2 flex-wrap gap-y-2">
               <span className="text-neonYellow text-xl animate-pulse">⚡</span>
@@ -280,11 +275,21 @@ export default function SandboxPage() {
             </label>
             <div className="flex flex-col md:flex-row gap-3 items-stretch mb-6">
               <div className="relative flex-1">
-                <input className="w-full bg-[#05070c] text-emerald-400 font-mono text-sm px-4 py-3.5 border-2 border-retroBorder focus:border-indigo-400 focus:ring-0 focus:outline-none transition-none shadow-inner" id="pr-url-input" placeholder="https://github.com/owner/repository/pull/123" type="text" defaultValue="https://github.com/org/repo/pull/42" />
+                <input
+                  className="w-full bg-[#05070c] text-emerald-400 font-mono text-sm px-4 py-3.5 border-2 border-retroBorder focus:border-indigo-400 focus:ring-0 focus:outline-none transition-none shadow-inner"
+                  id="pr-url-input"
+                  placeholder="https://github.com/owner/repository/pull/123"
+                  type="text"
+                  value={prUrl}
+                  onChange={(e) => setPrUrl(e.target.value)}
+                />
               </div>
-              <button className="pixel-btn bg-indigo-500 hover:bg-indigo-400 text-black font-arcade text-xs px-6 py-3.5 border-2 border-white pixel-box-shadow-accent flex items-center justify-center gap-2 font-bold tracking-wider shrink-0 uppercase">
+              <button
+                onClick={handleDetonate}
+                className="pixel-btn bg-indigo-500 hover:bg-indigo-400 text-black font-arcade text-xs px-6 py-3.5 border-2 border-white pixel-box-shadow-accent flex items-center justify-center gap-2 font-bold tracking-wider shrink-0 uppercase"
+              >
                 <span className="text-sm">⚡</span>
-                <span className="">DETONATE IN MICROVM</span>
+                <span>DETONATE IN MICROVM</span>
               </button>
             </div>
 
@@ -294,7 +299,7 @@ export default function SandboxPage() {
                   <div className="font-pixel text-xs text-white font-bold uppercase mb-0.5">Inject Honeypots</div>
                   <div className="font-mono text-[11px] text-slate-400">AWS, GH_TOKEN decoy keys</div>
                 </div>
-                <div className="retro-switch-bg active ml-3 shrink-0" data-purpose="toggle-honeypots" onClick={(e) => e.currentTarget.classList.toggle('active')}>
+                <div className={`retro-switch-bg ${injectHoneypot ? 'active' : ''} ml-3 shrink-0`} onClick={() => setInject(!injectHoneypot)}>
                   <div className="retro-switch-knob"></div>
                 </div>
               </div>
@@ -304,7 +309,7 @@ export default function SandboxPage() {
                   <div className="font-pixel text-xs text-white font-bold uppercase mb-0.5">Block Outbound Sockets</div>
                   <div className="font-mono text-[11px] text-slate-400">Deny all external TCP</div>
                 </div>
-                <div className="retro-switch-bg active ml-3 shrink-0" data-purpose="toggle-sockets" onClick={(e) => e.currentTarget.classList.toggle('active')}>
+                <div className={`retro-switch-bg ${blockSocket ? 'active' : ''} ml-3 shrink-0`} onClick={() => setBlockSocket(!blockSocket)}>
                   <div className="retro-switch-knob"></div>
                 </div>
               </div>
@@ -314,7 +319,7 @@ export default function SandboxPage() {
                   <div className="font-pixel text-xs text-slate-300 font-bold uppercase mb-0.5">Bypass Cache</div>
                   <div className="font-mono text-[11px] text-slate-500">Force fresh detonation</div>
                 </div>
-                <div className="retro-switch-bg ml-3 shrink-0" data-purpose="toggle-cache" onClick={(e) => e.currentTarget.classList.toggle('active')}>
+                <div className={`retro-switch-bg ${bypassCache ? 'active' : ''} ml-3 shrink-0`} onClick={() => setBypassCache(!bypassCache)}>
                   <div className="retro-switch-knob"></div>
                 </div>
               </div>
@@ -330,15 +335,25 @@ export default function SandboxPage() {
                   <span className="w-3 h-3 bg-neonGreen inline-block border border-black"></span>
                 </div>
                 <div className="font-pixel text-[10px] tracking-wider text-slate-400 uppercase">
-                  PRISON TERMINAL � AWAITING DETONATION
+                  PRISON TERMINAL — AWAITING DETONATION
                 </div>
                 <div className="w-8"></div>
               </div>
-              <div className="p-5 font-mono text-xs sm:text-sm text-slate-400 leading-relaxed flex-1 flex flex-col justify-between">
-                <div className="space-y-2">
-                  <p className="text-slate-400">Paste a PR URL above and click <span className="text-neonYellow">? Detonate</span>.</p>
-                  <p className="text-slate-500">The full pipeline will run and stream here.</p>
-                </div>
+              <div ref={termRef} className="p-5 font-mono text-xs sm:text-sm text-slate-400 leading-relaxed flex-1 flex flex-col justify-between overflow-y-auto max-h-[350px]">
+                {termLines.length === 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-slate-400">Paste a PR URL above and click <span className="text-neonYellow">⚡ Detonate</span>.</p>
+                    <p className="text-slate-500">The full pipeline will run and stream here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {termLines.map((l, i) => (
+                      <div key={i} className={l.type === 'breach' ? 'text-red-400 font-bold' : l.type === 'running' ? 'text-amber-300' : 'text-emerald-400'}>
+                        {l.msg}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-8 text-slate-400 pt-4 border-t border-retroBorder/40">
                   <span className="text-emerald-500 font-bold">prison@sandbox</span>:<span className="text-cyan-400 font-bold">~$</span> <span className="pixel-cursor"></span>
                 </div>
@@ -353,7 +368,7 @@ export default function SandboxPage() {
                   <span className="w-3 h-3 bg-neonGreen inline-block border border-black"></span>
                 </div>
                 <div className="font-pixel text-[10px] tracking-wider text-slate-400 uppercase">
-                  OSEN EBPF � SYSCALL EVENT STREAM
+                  OSEN EBPF — SYSCALL EVENT STREAM
                 </div>
                 <div className="w-8"></div>
               </div>
@@ -367,50 +382,50 @@ export default function SandboxPage() {
               </div>
             </div>
           </section>
-        {/* -- Clean Safe Banner (only when SAFE and no patch) -- */}
-        {apiStatus === 'SAFE' && !patch && threatReport && stage === 'done' && (
-          <div style={{
-            marginTop: '2rem',
-            background: 'linear-gradient(135deg, rgba(0,255,163,0.08), rgba(0,255,163,0.03))',
-            border: '1px solid var(--green)',
-            borderRadius: 12,
-            padding: '1.75rem',
-            display: 'flex', alignItems: 'center', gap: '1.25rem',
-          }}>
-            <div style={{ fontSize: '2.5rem', lineHeight: 1 }}>✅</div>
-            <div>
-              <div style={{
-                fontFamily: 'var(--font-display)', color: 'var(--green)',
-                fontWeight: 700, fontSize: '1rem', letterSpacing: '0.06em',
-                textTransform: 'uppercase', marginBottom: '0.4rem',
-              }}>
-                [SAFE] No Security Vulnerabilities Detected
-              </div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: 0, lineHeight: 1.6 }}>
-                {threatReport.summary}
-              </p>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-                <span className="badge badge-green">✓ ALLOW_MERGE</span>
-                <span className="badge badge-muted">Confidence {((threatReport.confidence_score || 0.97) * 100).toFixed(0)}%</span>
-                <span className="badge badge-muted">Severity 0/100</span>
+
+          {/* Clean Safe Banner */}
+          {apiStatus === 'SAFE' && !patch && threatReport && stage === 'done' && (
+            <div className="mt-8 p-6 bg-emerald-950/20 border-2 border-emerald-500/80 rounded-lg flex items-center gap-5">
+              <div className="text-4xl">✅</div>
+              <div>
+                <div className="font-pixel text-emerald-400 font-bold text-sm tracking-wider uppercase mb-1">
+                  [SAFE] No Security Vulnerabilities Detected
+                </div>
+                <p className="text-slate-300 text-xs">
+                  {threatReport.summary}
+                </p>
+                <div className="flex gap-3 mt-3">
+                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 font-pixel text-[10px] border border-emerald-500/50">✓ ALLOW_MERGE</span>
+                  <span className="px-2 py-0.5 bg-slate-800 text-slate-300 font-pixel text-[10px]">Confidence {((threatReport.confidence_score || 0.97) * 100).toFixed(0)}%</span>
+                  <span className="px-2 py-0.5 bg-slate-800 text-slate-300 font-pixel text-[10px]">Severity 0/100</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* -- Patch & Remediation (only when severity > 0 AND patch exists) -- */}
-        {patch && threatReport && threatReport.severity_score > 0 && (
-          <div style={{ marginTop: '2rem' }}>
-            <PatchReviewModal 
-              patch={patch} 
-              repoFullName={repoMeta.fullName}
-              prNumber={repoMeta.prNumber}
-              onClose={() => toast('Patch process completed.', 'success')} 
-            />
-          </section>          </div>
+          {/* Patch & Remediation */}
+          {patch && threatReport && threatReport.severity_score > 0 && (
+            <div className="mt-8">
+              <PatchReviewModal 
+                patch={patch} 
+                repoFullName={repoMeta.fullName}
+                prNumber={repoMeta.prNumber}
+                onClose={() => toast('Patch process completed.', 'success')} 
+              />
+            </div>
+          )}
+        </main>
+        
+        <footer className="border-t border-retroBorder bg-retroBg px-4 py-3 mt-10 text-center font-pixel text-[10px] text-slate-500 z-[100] relative">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div>© 2026 PRISON — PULL REQUEST ISOLATION &amp; SECURITY OBSERVATION NETWORK</div>
+            <div className="flex items-center gap-3">
+              <span className="text-emerald-500">■ v1.0.0</span>
+              <span>ALL SYSTEMS OPERATIONAL</span>
+            </div>
+          </div>
         </footer>
       </div>
     </>
   );
 }
-
