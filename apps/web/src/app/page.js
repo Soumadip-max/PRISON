@@ -202,13 +202,8 @@ export default function LandingPage() {
                     <span className="">VIEW THREAT REGISTRY →</span>
                   </Link>
                 </div>
-<<<<<<< HEAD
                 <div className="w-full flex-1 min-h-[350px] lg:min-h-[420px] mt-2">
                   <AsciiArtCanvas className="w-full h-full min-h-[350px] lg:min-h-[420px]" />
-=======
-                <div className="mt-12 flower-container">
-                  <video src="/flower.mp4" autoPlay loop muted playsInline aria-hidden="true" className="flower-animation" />
->>>>>>> upstream/main
                 </div>
               </div>
               <div className="lg:col-span-6 w-full">
