@@ -7,7 +7,7 @@ from fastapi import APIRouter, Request, HTTPException, Header, status
 from typing import Optional
 import json
 
-from services.orchestrator.schemas import GitHubWebhookPayload, WebhookResponse
+from services.orchestrator.schemas import GitHubWebhookPayload, LocalPathPayload, WebhookResponse
 from services.orchestrator.signature_validator import verify_github_signature
 from services.orchestrator.job_dispatcher import JobDispatcher
 
@@ -31,22 +31,37 @@ async def github_webhook(
     """
     raw_body = await request.body()
 
-    # 1. Verify HMAC Signature
-    is_valid = verify_github_signature(raw_body, x_hub_signature_256)
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid GitHub HMAC SHA-256 signature."
-        )
-
     # 2. Parse Payload
     try:
         json_data = json.loads(raw_body.decode("utf-8"))
-        payload = GitHubWebhookPayload(**json_data)
+        if json_data.get("source_type") == "LOCAL_PATH":
+            payload = LocalPathPayload(**json_data)
+        else:
+            payload = GitHubWebhookPayload(**json_data)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid webhook payload: {str(e)}"
+        )
+
+    # 1. Verify HMAC Signature (Skip if LOCAL_PATH)
+    if not isinstance(payload, LocalPathPayload):
+        is_valid = verify_github_signature(raw_body, x_hub_signature_256)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid GitHub HMAC SHA-256 signature."
+            )
+
+    if isinstance(payload, LocalPathPayload):
+        # 4a. Dispatch Local Path Async Detonation Job
+        job_id = dispatcher.dispatch_local_job(payload)
+        return WebhookResponse(
+            status="ACCEPTED",
+            job_id=job_id,
+            message="Local repository queued for microVM detonation.",
+            pr_number=0,
+            repo_name="local/repo"
         )
 
     # 3. Action Filter (only process PR opened, synchronize, or reopened)
@@ -60,7 +75,7 @@ async def github_webhook(
             repo_name=payload.repository.full_name
         )
 
-    # 4. Dispatch Async Detonation Job
+    # 4b. Dispatch Async Detonation Job
     job_id = dispatcher.dispatch_job(payload)
 
     return WebhookResponse(

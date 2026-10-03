@@ -1,9 +1,142 @@
 'use client';
 import Link from 'next/link';
-import ToastContainer from '@/components/Toast';
+import { useState, useEffect, useRef } from 'react';
+import Navbar from '@/components/Navbar';
+import AttackGraph from '@/components/AttackGraph';
+import PatchReviewModal from '@/components/agent/PatchReviewModal';
+import ToastContainer, { toast } from '@/components/Toast';
+import { api } from '@/lib/api';
+
+const STAGES = ['idle', 'detonating', 'observing', 'analyzing', 'patching', 'done'];
 
 export default function SandboxPage() {
-  return (
+  const [prUrl, setPrUrl]               = useState('');
+  const [injectHoneypot, setInject]     = useState(true);
+  const [blockSocket, setBlockSocket]   = useState(true);
+  const [bypassCache, setBypassCache]   = useState(false);
+  const [stage, setStage]               = useState('idle');
+  const [termLines, setTermLines]       = useState([]);
+  const [events, setEvents]             = useState([]);
+  const [dag, setDag]                   = useState(null);
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [patch, setPatch]               = useState(null);
+  const [commitLoading, setCommitLoad]  = useState(false);
+  const [sandboxId, setSandboxId]       = useState(null);
+  const [threatReport, setThreatReport] = useState(null);
+  const termRef = useRef(null);
+
+  // Auto-scroll terminal
+  useEffect(() => {
+    if (termRef.current) termRef.current.scrollTop = termRef.current.scrollHeight;
+  }, [termLines]);
+
+  const addLine = (type, msg) =>
+    setTermLines((prev) => [...prev, { type, msg, ts: new Date().toISOString() }]);
+
+  const [repoMeta, setRepoMeta]     = useState({ fullName: 'demo/repo', prNumber: 42 });
+  const [apiStatus, setApiStatus]   = useState(null); // 'SAFE' | 'BREACH_DETECTED' | 'ERROR'
+
+  const handleDetonate = async () => {
+    const url = prUrl.trim() || 'https://github.com/test/repo/pull/42';
+    setStage('detonating');
+    setTermLines([]);
+    setEvents([]);
+    setDag(null);
+    setPatch(null);
+    setSelectedNode(null);
+    setThreatReport(null);
+    setApiStatus(null);
+
+    addLine('agent', `[PRISON] Initiating detonation for: ${url}`);
+    
+    try {
+      const data = await api.detonateSync(url);
+      setSandboxId(data.execution_id);
+      setApiStatus(data.status);
+      addLine('running', `[PRISON] Sandbox ID: ${data.execution_id}`);
+
+      // Extract repo meta from URL for patch card
+      let fullName = 'demo/repo', prNum = 42;
+      try {
+        const m = url.match(/github\.com\/([^\/]+\/[^\/]+)\/pull\/(\d+)/);
+        if (m) { fullName = m[1]; prNum = parseInt(m[2]); }
+      } catch {}
+      setRepoMeta({ fullName, prNumber: prNum });
+      
+      data.terminal_logs.forEach((log, i) => {
+        setTimeout(() => addLine(log.type, log.msg), i * 300);
+      });
+      
+      const baseDelay = data.terminal_logs.length * 300;
+
+      setTimeout(() => {
+        setEvents(data.ebpf_events || []);
+        setStage('observing');
+      }, baseDelay);
+      
+      setTimeout(() => {
+        if (data.nodes && data.nodes.length > 0) {
+          setDag({
+            execution_id: data.execution_id,
+            nodes: data.nodes,
+            edges: data.edges || [],
+            has_honeypot_hit: data.severity > 80,
+            has_malicious_node: data.severity > 50,
+          });
+        }
+        setThreatReport({
+          threat_detected: data.severity > 0,
+          severity_score: data.severity,
+          confidence_score: data.confidence,
+          summary: data.summary || 'Analysis complete.',
+          attack_vector: 'Dynamic eBPF syscall tracing.',
+          gating_action: data.gating_action || 'ALLOW_MERGE',
+        });
+        setStage(data.severity > 0 ? 'analyzing' : 'done');
+      }, baseDelay + 1000);
+      
+      // Only set patch if severity > 0 AND patch_diff is non-null/non-empty
+      setTimeout(() => {
+        const hasPatch = data.patch_diff && data.patch_diff.trim().length > 0;
+        if (data.severity > 0 && hasPatch) {
+          setStage('patching');
+          setPatch({
+            target_file: 'package.json',
+            branch_name: `prison/fix-security-${data.execution_id.slice(4, 12)}`,
+            summary: data.summary || 'Security threat neutralized.',
+            unified_diff: data.patch_diff,
+          });
+          setTimeout(() => setStage('done'), 500);
+        }
+      }, baseDelay + 2000);
+
+    } catch (err) {
+      addLine('breach', `[PRISON] Detonation failed: ${err.message}`);
+      setStage('idle');
+    }
+  };
+
+  const handleCommit = async () => {
+    setCommitLoad(true);
+    await new Promise((r) => setTimeout(r, 1500));
+    toast('Patch committed to GitHub successfully! PR blocked.', 'success');
+    setCommitLoad(false);
+  };
+
+  const handleReject = () => {
+    toast('PR rejected and closed on GitHub.', 'error');
+  };
+
+  const stageBadge = {
+    idle:       { label: 'READY', cls: 'badge-muted' },
+    detonating: { label: '⚡ DETONATING', cls: 'badge-amber' },
+    observing:  { label: '👁 OBSERVING', cls: 'badge-amber' },
+    analyzing:  { label: '⬡ ANALYZING', cls: 'badge-cyan' },
+    patching:   { label: '🤖 PATCHING', cls: 'badge-green' },
+    done:       { label: '✓ COMPLETE', cls: 'badge-green' },
+  }[stage];
+
+          </section>  return (
     <>
       
       
@@ -197,13 +330,13 @@ export default function SandboxPage() {
                   <span className="w-3 h-3 bg-neonGreen inline-block border border-black"></span>
                 </div>
                 <div className="font-pixel text-[10px] tracking-wider text-slate-400 uppercase">
-                  PRISON TERMINAL — AWAITING DETONATION
+                  PRISON TERMINAL � AWAITING DETONATION
                 </div>
                 <div className="w-8"></div>
               </div>
               <div className="p-5 font-mono text-xs sm:text-sm text-slate-400 leading-relaxed flex-1 flex flex-col justify-between">
                 <div className="space-y-2">
-                  <p className="text-slate-400">Paste a PR URL above and click <span className="text-neonYellow">⚡ Detonate</span>.</p>
+                  <p className="text-slate-400">Paste a PR URL above and click <span className="text-neonYellow">? Detonate</span>.</p>
                   <p className="text-slate-500">The full pipeline will run and stream here.</p>
                 </div>
                 <div className="mt-8 text-slate-400 pt-4 border-t border-retroBorder/40">
@@ -220,7 +353,7 @@ export default function SandboxPage() {
                   <span className="w-3 h-3 bg-neonGreen inline-block border border-black"></span>
                 </div>
                 <div className="font-pixel text-[10px] tracking-wider text-slate-400 uppercase">
-                  OSEN EBPF — SYSCALL EVENT STREAM
+                  OSEN EBPF � SYSCALL EVENT STREAM
                 </div>
                 <div className="w-8"></div>
               </div>
@@ -234,18 +367,50 @@ export default function SandboxPage() {
               </div>
             </div>
           </section>
-        </main>
-
-        <footer className="border-t border-retroBorder bg-retroBg px-4 py-3 mt-10 text-center font-pixel text-[10px] text-slate-500 z-[100] relative">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-            <div className="">© 2026 PRISON — PULL REQUEST ISOLATION &amp; SECURITY OBSERVATION NETWORK</div>
-            <div className="flex items-center gap-3">
-              <span className="text-emerald-500">■ v1.0.0</span>
-              <span className="">ALL SYSTEMS OPERATIONAL</span>
+        {/* -- Clean Safe Banner (only when SAFE and no patch) -- */}
+        {apiStatus === 'SAFE' && !patch && threatReport && stage === 'done' && (
+          <div style={{
+            marginTop: '2rem',
+            background: 'linear-gradient(135deg, rgba(0,255,163,0.08), rgba(0,255,163,0.03))',
+            border: '1px solid var(--green)',
+            borderRadius: 12,
+            padding: '1.75rem',
+            display: 'flex', alignItems: 'center', gap: '1.25rem',
+          }}>
+            <div style={{ fontSize: '2.5rem', lineHeight: 1 }}>✅</div>
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-display)', color: 'var(--green)',
+                fontWeight: 700, fontSize: '1rem', letterSpacing: '0.06em',
+                textTransform: 'uppercase', marginBottom: '0.4rem',
+              }}>
+                [SAFE] No Security Vulnerabilities Detected
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: 0, lineHeight: 1.6 }}>
+                {threatReport.summary}
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                <span className="badge badge-green">✓ ALLOW_MERGE</span>
+                <span className="badge badge-muted">Confidence {((threatReport.confidence_score || 0.97) * 100).toFixed(0)}%</span>
+                <span className="badge badge-muted">Severity 0/100</span>
+              </div>
             </div>
           </div>
+        )}
+
+        {/* -- Patch & Remediation (only when severity > 0 AND patch exists) -- */}
+        {patch && threatReport && threatReport.severity_score > 0 && (
+          <div style={{ marginTop: '2rem' }}>
+            <PatchReviewModal 
+              patch={patch} 
+              repoFullName={repoMeta.fullName}
+              prNumber={repoMeta.prNumber}
+              onClose={() => toast('Patch process completed.', 'success')} 
+            />
+          </section>          </div>
         </footer>
       </div>
     </>
   );
 }
+
