@@ -94,7 +94,7 @@ export default function RegistryPage() {
         <ToastContainer />
         
 
-        <main className="flex-grow w-full max-w-[1720px] mx-auto px-4 lg:px-8 py-6 space-y-6 relative z-[100]">
+        <main className="flex-grow w-full max-w-[1720px] mx-auto px-4 lg:px-8 py-6 space-y-6 relative z-40">
           <section className="space-y-1.5" data-purpose="title-section">
             <div className="flex items-center space-x-2.5">
               <span className="text-xl leading-none text-slate-100 select-none">📁</span>
