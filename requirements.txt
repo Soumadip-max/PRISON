@@ -10,3 +10,6 @@ pytest
 pytest-asyncio
 langchain
 openai
+clerk-backend-api
+pyjwt
+requests

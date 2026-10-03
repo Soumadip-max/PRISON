@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { useUser, SignInButton, UserButton } from '@clerk/nextjs';
 
 const NAV_LINKS = [
   { href: '/', label: 'Overview' },
@@ -13,6 +14,7 @@ const NAV_LINKS = [
 export default function Navbar({ variant = 'landing' }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { isSignedIn, isLoaded } = useUser();
 
   return (
     <nav className="navbar">
@@ -42,13 +44,26 @@ export default function Navbar({ variant = 'landing' }) {
       </ul>
 
       {/* Actions */}
-      <div className="navbar-actions">
+      <div className="navbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span className="pulse-dot green" />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
             All Systems Online
           </span>
         </div>
+
+        {isLoaded && !isSignedIn && (
+          <SignInButton mode="modal">
+            <button className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
+              Sign In
+            </button>
+          </SignInButton>
+        )}
+
+        {isLoaded && isSignedIn && (
+          <UserButton afterSignOutUrl="/" />
+        )}
+
         <Link href="/sandbox" className="btn btn-primary btn-sm">
           ⚡ Detonate PR
         </Link>
