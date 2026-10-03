@@ -12,11 +12,11 @@ const nextConfig = {
     return [
       {
         source: '/api/orchestrator/:path*',
-        destination: 'http://localhost:8000/:path*',
+        destination: `${process.env.ORCHESTRATOR_INTERNAL_URL || 'http://localhost:8000'}/:path*`,
       },
       {
         source: '/api/telemetry/:path*',
-        destination: 'http://localhost:8001/:path*',
+        destination: `${process.env.TELEMETRY_INTERNAL_URL || 'http://localhost:8001'}/:path*`,
       },
     ];
   },
